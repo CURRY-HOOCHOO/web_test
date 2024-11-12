@@ -178,5 +178,55 @@
 
     <input type="file" onchange="uploadExcel(event)">
     <button onclick="downloadExcel()">엑셀 다운로드</button>
+
+    <script>
+    function addEntry() {
+    const entry = {
+        "접수번호": document.getElementById("receiptNo").value,
+        "품목(종류)": document.getElementById("productType").value,
+        "용기": document.getElementById("containerType").value,
+        // 필요한 다른 입력 값도 여기에 포함
+    };
+
+    fetch('http://127.0.0.1:5000/add-entry', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(entry)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data.message);
+        loadEntries(); // 새로운 데이터를 가져와 업데이트
+    })
+    .catch(error => console.error('Error:', error));
+}
+        function loadEntries() {
+    fetch('http://127.0.0.1:5000/get-entries')
+    .then(response => response.json())
+    .then(data => {
+        const table = document.getElementById("resultTable");
+        table.innerHTML = `<tr>
+            <th>접수번호</th><th>품목(종류)</th><th>용기</th>
+            <!-- 필요한 다른 헤더들 추가 -->
+        </tr>`;
+
+        data.forEach(entry => {
+            const row = table.insertRow();
+            row.insertCell().textContent = entry["접수번호"];
+            row.insertCell().textContent = entry["품목(종류)"];
+            row.insertCell().textContent = entry["용기"];
+            // 필요한 다른 셀 추가
+        });
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// 페이지가 로드될 때 데이터를 불러옴
+window.onload = loadEntries;
+
+</script>
+
 </body>
 </html>

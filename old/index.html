@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>용량 계산기 - 다중 입력</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
+    <script>
+        let dataEntries = [];
+        let currentPage = 1;
+        const rowsPerPage = 100;
+
+        function calculate허용부족량(표시, 단위) {
+            if (단위 === "g" || 단위 === "mL") {
+                if (표시 <= 50) return 표시 * 0.91;
+                else if (표시 <= 100) return 표시 - 4.5;
+                else if (표시 <= 200) return 표시 * 0.955;
+                else if (표시 <= 300) return 표시 - 9;
+                else if (표시 <= 500) return 표시 * 0.97;
+                else if (표시 <= 1000) return 표시 - 15;
+                else if (표시 <= 10000) return 표시 * 0.985;
+                else return "해당없음";
+            } else if (단위 === "kg" || 단위 === "L") {
+                if (표시 > 1 && 표시 <= 10) return 표시 * 0.985;
+                else if (표시 > 10 && 표시 <= 15) return 표시 - 0.15;
+                else if (표시 > 15 && 표시 <= 50) return 표시 * 0.99;
+                else return "해당없음";
+            }
+            return "해당없음";
+        }
+
+        function addEntry() {
+            const unit = document.getElementById("unit").value;
+            const density = parseFloat(document.getElementById("density").value) || 1;
+            const total1 = parseFloat(document.getElementById("total1").value) || 0;
+            const total2 = parseFloat(document.getElementById("total2").value) || 0;
+            const total3 = parseFloat(document.getElementById("total3").value) || 0;
+            const part1 = parseFloat(document.getElementById("part1").value) || 0;
+            const part2 = parseFloat(document.getElementById("part2").value) || 0;
+            const part3 = parseFloat(document.getElementById("part3").value) || 0;
+            const entry = {
+                "접수번호": document.getElementById("receiptNo").value,
+                "품목(종류)": document.getElementById("productType").value,
+                "용기": document.getElementById("containerType").value,
+                "총1": total1,
+                "총2": total2,
+                "총3": total3,
+                "용기1": part1,
+                "용기2": part2,
+                "용기3": part3,
+                "비중": unit === "g" ? "비활성" : density,
+                "계산 용량 1": (0.99985 / (density - 0.0012) * (total1 - part1)).toFixed(3),
+                "계산 용량 2": (0.99985 / (density - 0.0012) * (total2 - part2)).toFixed(3),
+                "계산 용량 3": (0.99985 / (density - 0.0012) * (total3 - part3)).toFixed(3),
+                "표시": parseFloat(document.getElementById("indicatedValue").value) || 0,
+                "단위": unit,
+                "허용부족량": calculate허용부족량(parseFloat(document.getElementById("indicatedValue").value), unit)
+            };
+            dataEntries.push(entry);
+            updateTable();
+        }
+
+        function updateTable() {
+            const table = document.getElementById("resultTable");
+            table.innerHTML = `<tr>
+                <th>접수번호</th><th>품목(종류)</th><th>용기</th>
+                <th>총1</th><th>총2</th><th>총3</th><th>용기1</th><th>용기2</th><th>용기3</th>
+                <th>비중</th><th>계산 용량 1</th><th>계산 용량 2</th><th>계산 용량 3</th>
+                <th>표시</th><th>단위</th><th>허용부족량</th><th>삭제</th>
+            </tr>`;
+
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            dataEntries.slice(start, end).forEach((entry, index) => {
+                const row = table.insertRow();
+                Object.values(entry).forEach(value => {
+                    const cell = row.insertCell();
+                    cell.textContent = value;
+                });
+                const deleteCell = row.insertCell();
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "삭제";
+                deleteButton.onclick = function () {
+                    const password = prompt("비밀번호를 입력하세요:");
+                    if (password === "admin") {
+                        dataEntries.splice(start + index, 1);
+                        updateTable();
+                    } else {
+                        alert("비밀번호가 올바르지 않습니다.");
+                    }
+                };
+                deleteCell.appendChild(deleteButton);
+            });
+            document.getElementById("pagination").innerHTML = `Page ${currentPage}`;
+        }
+
+        function uploadExcel(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(sheet);
+                dataEntries = dataEntries.concat(jsonData);
+                updateTable();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function downloadExcel() {
+            const worksheet = XLSX.utils.json_to_sheet(dataEntries);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "결과");
+            XLSX.writeFile(workbook, "용량_계산_결과.xlsx");
+        }
+
+        function searchByReceiptNo() {
+            const searchValue = document.getElementById("searchInput").value;
+            const filteredEntries = dataEntries.filter(entry => entry.접수번호.includes(searchValue));
+            if (filteredEntries.length > 0) {
+                dataEntries = filteredEntries;
+                updateTable();
+            }
+        }
+
+        function nextPage() {
+            if ((currentPage * rowsPerPage) < dataEntries.length) {
+                currentPage++;
+                updateTable();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updateTable();
+            }
+        }
+// 저장 기능
+document.getElementById('saveForm').addEventListener('submit', async (event) => {
+    event.preventDefault(); // 폼 제출 기본 동작 방지
+
+    const saveData = document.getElementById('saveData').value;
+    const uniqueId = Date.now().toString(); // 접수번호로 고유 ID 생성
+
+    const response = await fetch('/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uniqueId, data: saveData })
+    });
+
+    const result = await response.json();
+    if (result.success) {
+        document.getElementById('response').textContent = `저장 성공! 접수번호: ${uniqueId}`;
+    } else {
+        document.getElementById('response').textContent = '저장 실패!';
+    }
+});
+
+// 불러오기 기능
+document.getElementById('loadForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const uniqueId = document.getElementById('uniqueId').value;
+
+    const response = await fetch(`/retrieve/${uniqueId}`);
+    const result = await response.json();
+
+    if (result.success) {
+        document.getElementById('response').textContent = `불러온 데이터: ${result.data}`;
+    } else {
+        document.getElementById('response').textContent = '데이터를 찾을 수 없습니다.';
+    }
+});
+
+    </script>
+</head>
+<body>
+    <h1>용량 계산기 - 다중 입력</h1>
+    <form id="form" onsubmit="event.preventDefault(); addEntry();">
+        <label>접수번호: <input type="text" id="receiptNo" required></label>
+        <label>품목(종류): <input type="text" id="productType" required></label>
+        <label>용기(플라스틱/유리): <input type="text" id="containerType" required></label><br><br>
+        
+        <label>총1: <input type="number" id="total1" step="0.001"></label>
+        <label>총2: <input type="number" id="total2" step="0.001"></label>
+        <label>총3: <input type="number" id="total3" step="0.001"></label><br>
+        <label>용기1: <input type="number" id="part1" step="0.001"></label>
+        <label>용기2: <input type="number" id="part2" step="0.001"></label>
+        <label>용기3: <input type="number" id="part3" step="0.001"></label><br>
+        <label>비중: <input type="number" id="density" step="0.0001"></label><br><br>
+        
+        <label>표시: <input type="number" id="indicatedValue" step="0.001" required></label>
+        <label>단위: 
+            <select id="unit" required>
+                <option value="g">g</option>
+                <option value="mL">mL</option>
+                <option value="kg">kg</option>
+                <option value="L">L</option>
+            </select>
+        </label><br><br>
+
+        <button type="submit">추가</button>
+    </form>
+
+    <h2>입력 결과</h2>
+    <input type="text" id="searchInput" placeholder="접수번호 검색">
+    <button onclick="searchByReceiptNo()">검색</button><br><br>
+    <table id="resultTable" border="1"></table>
+
+    <button onclick="prevPage()">이전 페이지</button>
+    <button onclick="nextPage()">다음 페이지</button>
+    <span id="pagination"></span><br><br>
+
+    <input type="file" onchange="uploadExcel(event)">
+    <button onclick="downloadExcel()">엑셀 다운로드</button>
+<form id="applicationForm">
+    <input type="text" name="data" placeholder="저장할 데이터 입력" required />
+    <button type="submit">저장</button>
+</form>
+
+<form id="retrieveForm">
+    <input type="text" name="uniqueId" placeholder="접수번호 입력" required />
+    <button type="submit">불러오기</button>
+</form>
+<h2>저장 및 불러오기</h2>
+<form id="saveForm">
+    <label for="saveData">저장할 데이터:</label>
+    <input type="text" id="saveData" name="saveData" placeholder="저장할 데이터를 입력하세요" required>
+    <button type="submit">저장</button>
+</form>
+
+<form id="loadForm">
+    <label for="uniqueId">접수번호:</label>
+    <input type="text" id="uniqueId" name="uniqueId" placeholder="접수번호 입력" required>
+    <button type="submit">불러오기</button>
+</form>
+
+<p id="response"></p>
+
+</body>
+</html>

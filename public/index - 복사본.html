@@ -137,43 +137,6 @@
                 updateTable();
             }
         }
-// 저장 기능
-document.getElementById('saveForm').addEventListener('submit', async (event) => {
-    event.preventDefault(); // 폼 제출 기본 동작 방지
-
-    const saveData = document.getElementById('saveData').value;
-    const uniqueId = Date.now().toString(); // 접수번호로 고유 ID 생성
-
-    const response = await fetch('/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uniqueId, data: saveData })
-    });
-
-    const result = await response.json();
-    if (result.success) {
-        document.getElementById('response').textContent = `저장 성공! 접수번호: ${uniqueId}`;
-    } else {
-        document.getElementById('response').textContent = '저장 실패!';
-    }
-});
-
-// 불러오기 기능
-document.getElementById('loadForm').addEventListener('submit', async (event) => {
-    event.preventDefault();
-
-    const uniqueId = document.getElementById('uniqueId').value;
-
-    const response = await fetch(`/retrieve/${uniqueId}`);
-    const result = await response.json();
-
-    if (result.success) {
-        document.getElementById('response').textContent = `불러온 데이터: ${result.data}`;
-    } else {
-        document.getElementById('response').textContent = '데이터를 찾을 수 없습니다.';
-    }
-});
-
     </script>
 </head>
 <body>
@@ -215,29 +178,5 @@ document.getElementById('loadForm').addEventListener('submit', async (event) => 
 
     <input type="file" onchange="uploadExcel(event)">
     <button onclick="downloadExcel()">엑셀 다운로드</button>
-<form id="applicationForm">
-    <input type="text" name="data" placeholder="저장할 데이터 입력" required />
-    <button type="submit">저장</button>
-</form>
-
-<form id="retrieveForm">
-    <input type="text" name="uniqueId" placeholder="접수번호 입력" required />
-    <button type="submit">불러오기</button>
-</form>
-<h2>저장 및 불러오기</h2>
-<form id="saveForm">
-    <label for="saveData">저장할 데이터:</label>
-    <input type="text" id="saveData" name="saveData" placeholder="저장할 데이터를 입력하세요" required>
-    <button type="submit">저장</button>
-</form>
-
-<form id="loadForm">
-    <label for="uniqueId">접수번호:</label>
-    <input type="text" id="uniqueId" name="uniqueId" placeholder="접수번호 입력" required>
-    <button type="submit">불러오기</button>
-</form>
-
-<p id="response"></p>
-
 </body>
 </html>

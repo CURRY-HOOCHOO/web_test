@@ -3,48 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>안전확인대상생활화학제품 확인신청서</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        form {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-        }
-        label {
-            font-weight: bold;
-            margin-bottom: 5px;
-            display: block;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .buttons {
-            display: flex;
-            justify-content: space-between;
-        }
-        #response {
-            margin-top: 20px;
-            font-weight: bold;
-        }
-    </style>
-    <script>
-        // 저장 기능
-        async function saveData() {
-            const saveData = document.getElementById('saveData').value;
-            const uniqueId = prompt("불러오실 때 사용할 10자리 번호를 입력해주세요:");
+    <title>저장 및 불러오기 테스트</title>
+</head>
+<body>
+    <h1>저장 및 불러오기 테스트</h1>
 
-            if (!uniqueId || uniqueId.length !== 10) {
-                alert("10자리 번호를 정확히 입력해주세요.");
+    <label for="saveData">저장할 데이터:</label>
+    <input type="text" id="saveData" placeholder="저장할 데이터를 입력하세요">
+    <br>
+    <label for="uniqueId">10자리 번호:</label>
+    <input type="text" id="uniqueId" placeholder="10자리 번호를 입력하세요">
+    <br>
+    <button id="saveButton">저장</button>
+    <button id="loadButton">불러오기</button>
+    <p id="response"></p>
+
+    <script>
+        document.getElementById('saveButton').addEventListener('click', async () => {
+            const saveData = document.getElementById('saveData').value;
+            const uniqueId = document.getElementById('uniqueId').value;
+
+            if (!/^\d{10}$/.test(uniqueId)) {
+                alert("번호는 정확히 10자리 숫자로 입력해주세요.");
                 return;
             }
 
@@ -55,42 +35,30 @@
             });
 
             const result = await response.json();
-            if (result.success) {
-                document.getElementById('response').textContent = `저장 성공! 접수번호: ${uniqueId}`;
+            if (response.ok && result.success) {
+                alert("저장되었습니다.");
             } else {
-                document.getElementById('response').textContent = '저장 실패!';
+                alert("저장 실패: " + result.message);
             }
-        }
+        });
 
-        // 불러오기 기능
-        async function loadData() {
+        document.getElementById('loadButton').addEventListener('click', async () => {
             const uniqueId = document.getElementById('uniqueId').value;
+
+            if (!/^\d{10}$/.test(uniqueId)) {
+                alert("번호는 정확히 10자리 숫자로 입력해주세요.");
+                return;
+            }
 
             const response = await fetch(`/retrieve/${uniqueId}`);
             const result = await response.json();
 
-            if (result.success) {
+            if (response.ok && result.success) {
                 document.getElementById('response').textContent = `불러온 데이터: ${result.data}`;
             } else {
-                document.getElementById('response').textContent = '데이터를 찾을 수 없습니다.';
+                alert("불러오기 실패: " + result.message);
             }
-        }
+        });
     </script>
-</head>
-<body>
-    <form>
-        <h1>안전확인대상생활화학제품 확인신청서</h1>
-        <label for="saveData">저장할 데이터</label>
-        <textarea id="saveData" rows="5" placeholder="저장할 내용을 입력하세요"></textarea>
-
-        <label for="uniqueId">불러오기 번호</label>
-        <input type="text" id="uniqueId" placeholder="10자리 번호를 입력하세요">
-
-        <div class="buttons">
-            <button type="button" onclick="saveData()">저장</button>
-            <button type="button" onclick="loadData()">불러오기</button>
-        </div>
-    </form>
-    <div id="response"></div>
 </body>
 </html>
